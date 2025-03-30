@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>SkyJump City - Level 1: Beginner Skies</title>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Baloo+2:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="game-container">
+        <header>
+            <h1>SkyJump City</h1>
+            <h2>Level 1: Beginner Skies</h2>
+        </header>
+        
+        <div id="instructions-bubble">
+            <p>Use <span class="key">←</span> and <span class="key">→</span> to move</p>
+            <p>Press <span class="key">SPACE</span> to jump</p>
+            <p>Collect coins and reach the flag!</p>
+        </div>
+        
+        <div id="score-container">
+            <div id="coin-icon"></div>
+            <div id="score">0</div>
+        </div>
+        
+        <div id="game-world">
+            <!-- Game elements will be created by JavaScript -->
+        </div>
+        
+        <div id="game-message">
+            <div id="message-content"></div>
+            <button id="restart-button">Play Again</button>
+        </div>
+        
+        <div id="test-controls" style="position: fixed; bottom: 10px; right: 10px; z-index: 1000;">
+            <button id="run-tests-button" style="padding: 8px 16px; background-color: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer;">Run Tests</button>
+        </div>
+    </div>
+    
+    <script src="script.js"></script>
+    <script src="test.js"></script>
+    <script>
+        // Expose necessary functions for testing
+        document.getElementById('run-tests-button').addEventListener('click', function() {
+            window.gameTests.runAllTests();
+        });
+    </script>
+</body>
+</html>
