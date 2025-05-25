@@ -94,6 +94,62 @@ h2 {
     z-index: 100;
 }
 
+/* Level indicator */
+#level-indicator {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    display: flex;
+    background-color: rgba(0, 0, 0, 0.5);
+    border-radius: 20px;
+    padding: 5px;
+    z-index: 100;
+}
+
+.level-button {
+    color: white;
+    font-size: 16px;
+    padding: 5px 10px;
+    margin: 0 5px;
+    border-radius: 15px;
+    text-decoration: none;
+    transition: all 0.3s;
+}
+
+.level-button:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+}
+
+.level-button.active {
+    background-color: #FF6347;
+    pointer-events: none;
+}
+
+.level-link-button {
+    background-color: #FF6347;
+    color: white;
+    border: none;
+    border-radius: 10px;
+    padding: 15px 30px;
+    margin-top: 20px;
+    margin-bottom: 10px;
+    font-family: 'Baloo 2', cursive;
+    font-size: 24px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s;
+    text-decoration: none;
+    display: block;
+    text-align: center;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+}
+
+.level-link-button:hover {
+    background-color: #FF4500;
+    transform: scale(1.05);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+}
+
 #coin-icon {
     width: 20px;
     height: 20px;
@@ -171,9 +227,17 @@ h2 {
     width: 50px;
     height: 80px;
     background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 50 80"><defs><linearGradient id="pole-gradient" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" style="stop-color:%23A0522D"/><stop offset="50%" style="stop-color:%23CD853F"/></linearGradient><linearGradient id="flag-gradient" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:%23FF4500"/><stop offset="100%" style="stop-color:%23FF6347"/></linearGradient></defs><rect x="5" y="0" width="5" height="80" fill="url(%23pole-gradient)" rx="2" ry="2"/><polygon points="10,5 40,15 10,25" fill="url(%23flag-gradient)"><animate attributeName="points" values="10,5 40,15 10,25; 10,5 35,15 10,25; 10,5 40,15 10,25" dur="1s" repeatCount="indefinite"/></polygon><circle cx="7.5" cy="5" r="3.5" fill="gold"/></svg>');
-    z-index: 3;
-    animation: flagWave 2s infinite alternate;
-    filter: drop-shadow(0 0 5px rgba(255, 215, 0, 0.5));
+    background-repeat: no-repeat;
+    background-size: contain;
+    animation: flagWave 2s infinite alternate, flagGlow 1.5s infinite alternate;
+    transform-origin: left center;
+    z-index: 50;
+    filter: drop-shadow(0 0 15px rgba(255, 69, 0, 0.8));
+}
+
+@keyframes flagGlow {
+    0% { filter: drop-shadow(0 0 10px rgba(255, 69, 0, 0.7)); }
+    100% { filter: drop-shadow(0 0 20px rgba(255, 69, 0, 1)); }
 }
 
 @keyframes flagWave {

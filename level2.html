@@ -3,21 +3,23 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>SkyJump City - Level 1: Beginner Skies</title>
+    <title>SkyJump City - Level 2: Advanced Heights</title>
     <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Baloo+2:wght@400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="level2-style.css">
 </head>
 <body>
     <div id="game-container">
         <header>
             <h1>SkyJump City</h1>
-            <h2>Game Design by Steven Lu with AI 🤖</h2>
+            <h2>Level 2: Advanced Heights</h2>
         </header>
         
         <div id="instructions-bubble">
             <p>Use <span class="key">←</span> and <span class="key">→</span> to move</p>
             <p>Press <span class="key">SPACE</span> to jump</p>
             <p>Collect coins and reach the flag!</p>
+            <p>Watch out for moving platforms!</p>
         </div>
         
         <div id="score-container">
@@ -26,8 +28,8 @@
         </div>
         
         <div id="level-indicator">
-            <span class="level-button active">Level 1</span>
-            <a href="level2.html" class="level-button">Level 2</a>
+            <a href="index.html" class="level-button">Level 1</a>
+            <span class="level-button active">Level 2</span>
         </div>
         
         <div id="game-world">
@@ -37,7 +39,7 @@
         <div id="game-message">
             <div id="message-content"></div>
             <button id="restart-button">Play Again</button>
-            <a href="level2.html" id="level2-button" class="level-link-button">Go to Level 2</a>
+            <a href="index.html" id="level1-button" class="level-link-button">Go to Level 1</a>
         </div>
         
         <div id="test-controls" style="position: fixed; bottom: 10px; right: 10px; z-index: 1000;">
@@ -45,7 +47,7 @@
         </div>
     </div>
     
-    <script src="script.js"></script>
+    <script src="level2-script.js"></script>
     <script src="test.js"></script>
     <script>
         // Expose necessary functions for testing

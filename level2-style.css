@@ -1,0 +1,159 @@
+/* Level 2 Specific Styles */
+
+/* Background gradient for level 2 */
+body {
+    background: linear-gradient(to bottom, #8A2BE2, #4B0082);
+}
+
+#game-container {
+    background: linear-gradient(to bottom, #8A2BE2, #4B0082);
+}
+
+/* Level indicator */
+#level-indicator {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    display: flex;
+    background-color: rgba(0, 0, 0, 0.5);
+    border-radius: 20px;
+    padding: 5px;
+    z-index: 100;
+}
+
+.level-button {
+    color: white;
+    font-size: 16px;
+    padding: 5px 10px;
+    margin: 0 5px;
+    border-radius: 15px;
+    text-decoration: none;
+    transition: all 0.3s;
+}
+
+.level-button:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+}
+
+.level-button.active {
+    background-color: #FF6347;
+    pointer-events: none;
+}
+
+.level-link-button {
+    background-color: #4B0082;
+    color: white;
+    border: none;
+    border-radius: 10px;
+    padding: 10px 20px;
+    margin-top: 10px;
+    font-family: 'Baloo 2', cursive;
+    font-size: 18px;
+    cursor: pointer;
+    transition: all 0.3s;
+    text-decoration: none;
+    display: inline-block;
+}
+
+.level-link-button:hover {
+    background-color: #8A2BE2;
+    transform: scale(1.05);
+}
+
+/* Level 2 specific platform styles */
+.platform {
+    background: linear-gradient(to bottom, #FF8C00, #FF4500);
+    box-shadow: 0 0 15px rgba(255, 140, 0, 0.8);
+    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="20" viewBox="0 0 100 20"><defs><linearGradient id="grass" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" style="stop-color:%23FF8C00"/><stop offset="100%" style="stop-color:%23FF4500"/></linearGradient></defs><rect width="100" height="20" fill="url(%23grass)" rx="10" ry="10"/><path d="M10 0 C 15 -5, 15 5, 20 0 M30 0 C 35 -5, 35 5, 40 0 M50 0 C 55 -5, 55 5, 60 0 M70 0 C 75 -5, 75 5, 80 0 M90 0 C 95 -5, 95 5, 100 0" stroke="%23FF8C00" stroke-width="2"/><rect x="5" y="5" width="90" height="2" fill="%23FFCC80" rx="1" ry="1" opacity="0.5"/></svg>');
+}
+
+/* Moving platform animation */
+.platform.moving-horizontal {
+    animation: moveHorizontal 4s infinite alternate ease-in-out;
+}
+
+.platform.moving-vertical {
+    animation: moveVertical 3s infinite alternate ease-in-out;
+}
+
+@keyframes moveHorizontal {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(100px); }
+}
+
+@keyframes moveVertical {
+    0% { transform: translateY(0); }
+    100% { transform: translateY(50px); }
+}
+
+/* Level 2 specific coin styles */
+.coin {
+    filter: drop-shadow(0 0 8px purple);
+}
+
+/* Level 2 specific goal flag */
+.goal {
+    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 50 80"><defs><linearGradient id="pole-gradient" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" style="stop-color:%23A0522D"/><stop offset="50%" style="stop-color:%23CD853F"/></linearGradient><linearGradient id="flag-gradient" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:%23FF4500"/><stop offset="100%" style="stop-color:%23FF6347"/></linearGradient></defs><rect x="5" y="0" width="5" height="80" fill="url(%23pole-gradient)" rx="2" ry="2"/><polygon points="10,5 40,15 10,25" fill="url(%23flag-gradient)"><animate attributeName="points" values="10,5 40,15 10,25; 10,5 35,15 10,25; 10,5 40,15 10,25" dur="1s" repeatCount="indefinite"/></polygon><circle cx="7.5" cy="5" r="3.5" fill="gold"/></svg>');
+    filter: drop-shadow(0 0 15px rgba(255, 69, 0, 0.8));
+    transform-origin: left center;
+    animation: flagWave 2s infinite alternate, flagGlow 1.5s infinite alternate;
+    z-index: 50;
+}
+
+@keyframes flagGlow {
+    0% { filter: drop-shadow(0 0 10px rgba(255, 69, 0, 0.7)); }
+    100% { filter: drop-shadow(0 0 20px rgba(255, 69, 0, 1)); }
+}
+
+/* Level 2 moon instead of sun */
+.moon {
+    position: absolute;
+    top: 80px;
+    right: 80px;
+    width: 100px;
+    height: 100px;
+    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><radialGradient id="moon-gradient" cx="50%" cy="50%" r="50%" fx="50%" fy="50%"><stop offset="0%" style="stop-color:%23FFFFFF"/><stop offset="100%" style="stop-color:%23E6E6FA"/></radialGradient></defs><circle cx="50" cy="50" r="40" fill="url(%23moon-gradient)"/><circle cx="30" cy="30" r="10" fill="%23E6E6FA"/><circle cx="70" cy="40" r="8" fill="%23E6E6FA"/><circle cx="40" cy="60" r="12" fill="%23E6E6FA"/></svg>');
+    z-index: 1;
+    animation: moonGlow 5s infinite alternate;
+}
+
+@keyframes moonGlow {
+    0% { filter: drop-shadow(0 0 5px rgba(230, 230, 250, 0.5)); }
+    100% { filter: drop-shadow(0 0 20px rgba(230, 230, 250, 0.8)); }
+}
+
+/* Level 2 stars */
+.star {
+    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M10,0 L12,7 L20,7 L14,12 L16,20 L10,15 L4,20 L6,12 L0,7 L8,7 Z" fill="%23E6E6FA"/></svg>');
+    opacity: 0.9;
+}
+
+/* Obstacle */
+.obstacle {
+    position: absolute;
+    width: 40px;
+    height: 40px;
+    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40"><defs><linearGradient id="spike-gradient" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" style="stop-color:%23FF0000"/><stop offset="100%" style="stop-color:%23800000"/></linearGradient></defs><polygon points="20,0 40,40 0,40" fill="url(%23spike-gradient)"/></svg>');
+    z-index: 5;
+}
+
+/* Power-up */
+.power-up {
+    position: absolute;
+    width: 30px;
+    height: 30px;
+    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 30 30"><defs><linearGradient id="star-gradient" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:%2300FFFF"/><stop offset="100%" style="stop-color:%230000FF"/></linearGradient></defs><path d="M15,0 L18,10 L30,10 L20,16 L24,30 L15,22 L6,30 L10,16 L0,10 L12,10 Z" fill="url(%23star-gradient)"/></svg>');
+    animation: rotate 3s linear infinite, pulse 2s infinite alternate;
+    z-index: 5;
+    filter: drop-shadow(0 0 10px cyan);
+}
+
+@keyframes rotate {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+@keyframes pulse {
+    0% { transform: scale(1) rotate(0deg); }
+    100% { transform: scale(1.2) rotate(180deg); }
+}

@@ -1,14 +1,17 @@
 // Game Constants
-const GRAVITY = 0.6;
-const JUMP_POWER = 15;
-const MOVE_SPEED = 5;
-const PLATFORM_COUNT = 8;
-const COIN_COUNT = 5;
+const GRAVITY = 0.5; // Reduced gravity for easier jumping
+const JUMP_POWER = 15.75; // 5% higher jump power than level 1 (15 * 1.05 = 15.75)
+const MOVE_SPEED = 6; // Faster movement speed
+const PLATFORM_COUNT = 15; // More platforms for more landing spots
+const COIN_COUNT = 10; // More coins for more rewards
 const CLOUD_COUNT = 5;
 const BIRD_COUNT = 3;
-const STAR_COUNT = 8;
-const MIN_PLATFORM_WIDTH = 80;
-const MAX_PLATFORM_WIDTH = 180;
+const STAR_COUNT = 15; // More stars for night sky
+const MIN_PLATFORM_WIDTH = 100; // Wider platforms for easier landing
+const MAX_PLATFORM_WIDTH = 200; // Wider maximum platform width
+const OBSTACLE_COUNT = 3; // Fewer obstacles
+const POWER_UP_COUNT = 5; // More power-ups to help the player
+const MOVING_PLATFORM_CHANCE = 0.25; // Reduced chance for platforms to move
 const DEBUG_MODE = false; // Debug mode off by default
 const SHOW_DEBUG_PANEL = false; // Control debug panel visibility separately
 
@@ -19,6 +22,8 @@ let coins = [];
 let clouds = [];
 let birds = [];
 let stars = [];
+let obstacles = []; // New: obstacles array
+let powerUps = []; // New: power-ups array
 let goal;
 let score = 0;
 let isGameOver = false;
@@ -28,7 +33,9 @@ let playerVelocityX = 0;
 let playerFacing = 'right';
 let isJumping = false;
 let isOnPlatform = false;
-let gameWorldWidth = 2000; // Increased game world width
+let hasSuperJump = false; // New: power-up effect
+let superJumpTimeLeft = 0; // New: power-up duration
+let gameWorldWidth = 2500; // Increased game world width for level 2
 let gameWorldHeight = window.innerHeight;
 let viewportX = 0;
 
@@ -106,6 +113,7 @@ function updateDebugInfo() {
         Velocity Y: ${playerVelocityY}<br>
         On Platform: ${isOnPlatform}<br>
         Jumping: ${isJumping}<br>
+        Super Jump: ${hasSuperJump ? superJumpTimeLeft + 's' : 'No'}<br>
         Platform Count: ${platforms.length}
     `;
     
@@ -143,6 +151,8 @@ function initGame() {
     clouds = [];
     birds = [];
     stars = [];
+    obstacles = [];
+    powerUps = [];
     score = 0;
     isGameOver = false;
     isLevelComplete = false;
@@ -151,31 +161,29 @@ function initGame() {
     playerFacing = 'right';
     isJumping = false;
     isOnPlatform = false;
+    hasSuperJump = false;
+    superJumpTimeLeft = 0;
     viewportX = 0;
     scoreDisplay.textContent = '0';
     gameMessage.style.display = 'none';
-    
-    // Hide the level 2 button at the start of the game
-    const level2Button = document.getElementById('level2-button');
-    if (level2Button) level2Button.style.display = 'none';
     
     debugLog("Initializing game...");
     
     // Update game world dimensions based on window size
     gameWorldHeight = window.innerHeight;
-    gameWorldWidth = Math.max(2000, window.innerWidth * 2); // Make sure game world is at least twice the window width
+    gameWorldWidth = Math.max(2500, window.innerWidth * 2.5); // Make sure game world is larger for level 2
     
     debugLog(`Game world dimensions: ${gameWorldWidth}x${gameWorldHeight}`);
     
-    // Create sun
-    const sun = document.createElement('div');
-    sun.className = 'sun';
-    gameWorld.appendChild(sun);
+    // Create moon (instead of sun for level 2)
+    const moon = document.createElement('div');
+    moon.className = 'moon';
+    gameWorld.appendChild(moon);
     
     // Create starting platform (always in the same position for player to start on)
-    const startingPlatformY = 50;
+    const startingPlatformY = 100; // Higher starting platform for level 2
     const startingPlatformHeight = 20; // Platform height is 20px
-    createPlatform(0, startingPlatformY, 150);
+    createPlatform(0, startingPlatformY, 300); // Wider starting platform for level 2
     
     debugLog(`Created starting platform at Y=${startingPlatformY}, height=${startingPlatformHeight}`);
     
@@ -202,10 +210,24 @@ function initGame() {
     // Generate random coins
     generateRandomCoins();
     
+    // Generate obstacles (new for level 2)
+    generateRandomObstacles();
+    
+    // Generate power-ups (new for level 2)
+    generateRandomPowerUps();
+    
     // Create goal at a random position near the end
     createRandomGoal();
     
-    // Create clouds
+    // Create stars (more for level 2 night sky)
+    for (let i = 0; i < STAR_COUNT; i++) {
+        createStar(
+            Math.random() * gameWorldWidth,
+            Math.random() * 400 + 50
+        );
+    }
+    
+    // Create clouds (fewer for night sky)
     for (let i = 0; i < CLOUD_COUNT; i++) {
         createCloud(
             Math.random() * gameWorldWidth,
@@ -214,7 +236,7 @@ function initGame() {
         );
     }
     
-    // Create birds
+    // Create birds for the background
     for (let i = 0; i < BIRD_COUNT; i++) {
         createBird(
             Math.random() * gameWorldWidth,
@@ -222,15 +244,7 @@ function initGame() {
         );
     }
     
-    // Create stars
-    for (let i = 0; i < STAR_COUNT; i++) {
-        createStar(
-            Math.random() * gameWorldWidth,
-            Math.random() * 200 + 50
-        );
-    }
-    
-    debugLog(`Game initialization complete. Created ${platforms.length} platforms, ${coins.length} coins.`);
+    debugLog(`Game initialization complete. Created ${platforms.length} platforms, ${coins.length} coins, ${obstacles.length} obstacles, ${powerUps.length} power-ups.`);
     
     // Start game loop
     requestAnimationFrame(gameLoop);
@@ -244,13 +258,13 @@ function initGame() {
 
 // Generate Random Platforms
 function generateRandomPlatforms() {
-    // Define parameters for jumpable distances
-    const minHorizontalGap = 80;  // Minimum gap between platforms
-    const maxHorizontalGap = 180; // Maximum gap (based on player jump distance)
-    const maxVerticalGap = 120;   // Maximum vertical gap player can jump
+    // Define parameters for jumpable distances - easier for level 2
+    const minHorizontalGap = 60;  // Smaller minimum gap for easier jumps
+    const maxHorizontalGap = 140; // Smaller maximum gap for easier jumps
+    const maxVerticalGap = 80;    // Smaller vertical gap for easier jumps
     
-    let lastX = 150; // Start after the initial platform
-    let lastY = 50;  // Start at the same height as initial platform
+    let lastX = 300; // Start after the initial platform (wider gap to ensure first platform is visible)
+    let lastY = 100;  // Start at the same height as initial platform (matching our new starting platform height)
     
     for (let i = 0; i < PLATFORM_COUNT; i++) {
         // Calculate new position with appropriate gaps
@@ -272,10 +286,10 @@ function generateRandomPlatforms() {
         let verticalChange;
         if (verticalDirection === 1) {
             // Going up - limit the height increase to what player can jump
-            verticalChange = Math.random() * 80 + 20;
+            verticalChange = Math.random() * 90 + 30; // Higher jumps for level 2
         } else if (verticalDirection === -1) {
             // Going down - can go lower with no jump limitations
-            verticalChange = Math.random() * 100 + 20;
+            verticalChange = Math.random() * 120 + 30;
         } else {
             // Same level
             verticalChange = 0;
@@ -323,13 +337,43 @@ function generateRandomCoins() {
         
         // Position coin above the platform
         const coinX = platform.x + Math.random() * (platform.width - 30);
-        const coinY = platform.y + 40 + Math.random() * 60; // 40-100px above platform
+        const coinY = platform.y + 40 + Math.random() * 80; // 40-120px above platform for level 2
         
         createCoin(coinX, coinY);
     }
 }
 
-// Create Random Goal
+// Generate Random Obstacles (new for level 2)
+function generateRandomObstacles() {
+    for (let i = 0; i < OBSTACLE_COUNT; i++) {
+        // Choose a random platform (excluding the first one and last one)
+        const platformIndex = Math.floor(Math.random() * (platforms.length - 2)) + 1;
+        const platform = platforms[platformIndex];
+        
+        // Position obstacle on the platform
+        const obstacleX = platform.x + Math.random() * (platform.width - 40);
+        const obstacleY = platform.y + 20; // Place on top of platform
+        
+        createObstacle(obstacleX, obstacleY);
+    }
+}
+
+// Generate Random Power-Ups (new for level 2)
+function generateRandomPowerUps() {
+    for (let i = 0; i < POWER_UP_COUNT; i++) {
+        // Choose a random platform (excluding the first one and last one)
+        const platformIndex = Math.floor(Math.random() * (platforms.length - 2)) + 1;
+        const platform = platforms[platformIndex];
+        
+        // Position power-up above the platform
+        const powerUpX = platform.x + Math.random() * (platform.width - 30);
+        const powerUpY = platform.y + 60 + Math.random() * 80; // 60-140px above platform
+        
+        createPowerUp(powerUpX, powerUpY);
+    }
+}
+
+// Create Goal at fixed position at the end
 function createRandomGoal() {
     // Find the last platform to determine where the level ends
     let maxX = 0;
@@ -378,18 +422,33 @@ function createRandomGoal() {
 function createPlatform(x, y, width) {
     const platform = document.createElement('div');
     platform.className = 'platform';
+    
+    // For level 2, some platforms move
+    if (Math.random() < MOVING_PLATFORM_CHANCE) {
+        if (Math.random() < 0.5) {
+            platform.classList.add('moving-horizontal');
+        } else {
+            platform.classList.add('moving-vertical');
+        }
+    }
+    
     platform.style.left = `${x}px`;
     platform.style.bottom = `${y}px`;
     platform.style.width = `${width}px`;
     gameWorld.appendChild(platform);
     
-    platforms.push({
+    const platformObj = {
         element: platform,
         x: x,
         y: y,
         width: width,
-        height: 20
-    });
+        height: 20,
+        isMoving: platform.classList.contains('moving-horizontal') || platform.classList.contains('moving-vertical'),
+        movementType: platform.classList.contains('moving-horizontal') ? 'horizontal' : 
+                      platform.classList.contains('moving-vertical') ? 'vertical' : null
+    };
+    
+    platforms.push(platformObj);
 }
 
 // Create Coin
@@ -401,6 +460,39 @@ function createCoin(x, y) {
     gameWorld.appendChild(coin);
     coins.push({
         element: coin,
+        x: x,
+        y: y,
+        width: 30,
+        height: 30,
+        collected: false
+    });
+}
+
+// Create Obstacle (new for level 2)
+function createObstacle(x, y) {
+    const obstacle = document.createElement('div');
+    obstacle.className = 'obstacle';
+    obstacle.style.left = `${x}px`;
+    obstacle.style.bottom = `${y}px`;
+    gameWorld.appendChild(obstacle);
+    obstacles.push({
+        element: obstacle,
+        x: x,
+        y: y,
+        width: 40,
+        height: 40
+    });
+}
+
+// Create Power-Up (new for level 2)
+function createPowerUp(x, y) {
+    const powerUp = document.createElement('div');
+    powerUp.className = 'power-up';
+    powerUp.style.left = `${x}px`;
+    powerUp.style.bottom = `${y}px`;
+    gameWorld.appendChild(powerUp);
+    powerUps.push({
+        element: powerUp,
         x: x,
         y: y,
         width: 30,
@@ -427,6 +519,10 @@ function createBird(x, y) {
     bird.style.left = `${x}px`;
     bird.style.top = `${y}px`;
     bird.style.animationDelay = `${Math.random() * 5}s`;
+    
+    // For level 2, use a different color scheme for night birds
+    bird.style.filter = `hue-rotate(${Math.random() * 60 + 180}deg) brightness(1.5)`;
+    
     gameWorld.appendChild(bird);
     birds.push(bird);
 }
@@ -448,8 +544,27 @@ function updatePlayerPosition() {
     let playerX = parseInt(player.style.left);
     let playerY = parseInt(player.style.bottom);
     
-    // Apply gravity
-    playerVelocityY -= GRAVITY;
+    // Safety timer to prevent falling through platform at start
+    if (safetyStartTimer < 10) {
+        safetyStartTimer++;
+        playerVelocityY = 0; // No gravity for first few frames
+        isOnPlatform = true;
+    } else {
+        // Apply gravity after safety period
+        playerVelocityY -= GRAVITY;
+    }
+    
+    // Apply super jump power-up effect if active
+    if (hasSuperJump) {
+        // Reduce timer
+        superJumpTimeLeft -= 1/60; // Assuming 60fps
+        
+        if (superJumpTimeLeft <= 0) {
+            hasSuperJump = false;
+            player.style.filter = ''; // Remove glow effect
+            debugLog('Super jump power-up expired');
+        }
+    }
     
     // Update position based on velocity
     playerX += playerVelocityX;
@@ -473,27 +588,78 @@ function updatePlayerPosition() {
     
     // Debug log player position and state
     if (DEBUG_MODE && Math.random() < 0.05) { // Only log occasionally to avoid spam
-        debugLog(`Player position: X=${playerX}, Y=${playerY}, VelocityY=${playerVelocityY.toFixed(2)}, OnPlatform=${isOnPlatform}, Jumping=${isJumping}`);
+        debugLog(`Player position: X=${playerX}, Y=${playerY}, VelocityY=${playerVelocityY.toFixed(2)}, OnPlatform=${isOnPlatform}, Jumping=${isJumping}, SuperJump=${hasSuperJump}`);
     }
     
     // Update exposed variables for testing
     window.playerVelocityY = playerVelocityY;
 }
 
+// Check if player is still on any platform (called every frame)
+function checkPlayerStillOnPlatform() {
+    // Skip if player is jumping or already falling
+    if (isJumping || playerVelocityY < 0) return;
+    
+    const playerX = parseInt(player.style.left);
+    const playerY = parseInt(player.style.bottom);
+    const playerWidth = 50;
+    
+    // Check if player is still on any platform
+    let stillOnPlatform = false;
+    
+    for (const platform of platforms) {
+        // For moving platforms, use their current position
+        const platformX = platform.isMoving && platform.movementType === 'horizontal' ? 
+                         platform.currentX : platform.x;
+        const platformY = platform.isMoving && platform.movementType === 'vertical' ? 
+                         platform.currentY : platform.y;
+        
+        // Check horizontal overlap
+        const horizontalOverlap = playerX + playerWidth > platformX && playerX < platformX + platform.width;
+        
+        // Check if player is on top of platform
+        const onTopOfPlatform = Math.abs(playerY - platformY) <= 5;
+        
+        if (horizontalOverlap && onTopOfPlatform) {
+            stillOnPlatform = true;
+            
+            // If player wasn't on a platform before, update their position
+            if (!isOnPlatform) {
+                player.style.bottom = `${platformY}px`;
+                playerVelocityY = 0;
+            }
+            
+            isOnPlatform = true;
+            break;
+        }
+    }
+    
+    // If player is not on any platform, start falling
+    if (!stillOnPlatform) {
+        isOnPlatform = false;
+        
+        // Only reset velocity if we're not already falling
+        if (playerVelocityY >= 0) {
+            playerVelocityY = 0; // Start falling from rest
+        }
+        
+        if (DEBUG_MODE && isOnPlatform) {
+            debugLog('Player no longer on any platform - starting to fall');
+        }
+    }
+}
+
 // Game Loop
 function gameLoop() {
     // Check for game over condition first - player is below screen
     const playerY = parseInt(player.style.bottom);
-    if (playerY <= -100 && !isGameOver) {
+    // Only check for game over after safety period and give more space
+    if (playerY <= -200 && !isGameOver && safetyStartTimer >= 10) {
         isGameOver = true;
         playerVelocityY = 0;
         playerVelocityX = 0;
         messageContent.textContent = 'Game Over! Try Again ';
         gameMessage.style.display = 'block';
-        
-        // Hide the level 2 button since player didn't complete the level
-        const level2Button = document.getElementById('level2-button');
-        if (level2Button) level2Button.style.display = 'none';
         
         // Play fail sound
         playSound('fail');
@@ -514,13 +680,24 @@ function gameLoop() {
     // Update player position
     updatePlayerPosition();
     
+    // Update moving platforms
+    updateMovingPlatforms();
+    
+    // Continuously check if player is still on any platform
+    checkPlayerStillOnPlatform();
+    
     // Check collisions (platform check must come before other checks)
     checkPlatformCollisions();
     checkCoinCollisions();
+    checkObstacleCollisions(); // New for level 2
+    checkPowerUpCollisions(); // New for level 2
     checkGoalCollision();
     
     // Update viewport
     updateViewport();
+    
+    // Update power-up effects
+    updatePowerUpEffects();
     
     // Update debug info if debug mode is on
     if (DEBUG_MODE) {
@@ -535,6 +712,85 @@ function gameLoop() {
     
     // Continue game loop
     requestAnimationFrame(gameLoop);
+}
+
+// Update Moving Platforms (new for level 2)
+function updateMovingPlatforms() {
+    platforms.forEach(platform => {
+        if (!platform.isMoving) return;
+        
+        // Get current position from the DOM element
+        const currentTransform = platform.element.style.transform || '';
+        let currentX = 0;
+        let currentY = 0;
+        
+        // Extract current translation values if they exist
+        const translateMatch = currentTransform.match(/translateX\((\d+)px\)/) || 
+                              currentTransform.match(/translateY\((\d+)px\)/);
+        
+        // Store previous position to check if player needs to move with platform
+        const prevX = platform.currentX || platform.x;
+        const prevY = platform.currentY || platform.y;
+        
+        if (platform.movementType === 'horizontal') {
+            // Update platform's position in the game state
+            // We don't need to manually update the DOM element as CSS animation handles that
+            // But we need to update our collision detection coordinates
+            
+            // Calculate approximate position based on time
+            const time = Date.now() / 1000; // Current time in seconds
+            const cycle = time % 8; // 8 seconds for a complete cycle (4s each way)
+            const normalizedPosition = cycle < 4 ? cycle / 4 : 2 - (cycle / 4); // 0 to 1 to 0
+            const offset = normalizedPosition * 100; // 0 to 100px
+            
+            // Update platform's x position in our game state
+            platform.currentX = platform.x + offset;
+            
+            // If player is on this platform, move them with it
+            if (isOnPlatform) {
+                const playerX = parseInt(player.style.left);
+                const playerY = parseInt(player.style.bottom);
+                const playerWidth = 50;
+                
+                // Check if player is on this specific platform
+                if (playerX + playerWidth > prevX && 
+                    playerX < prevX + platform.width &&
+                    Math.abs(playerY - prevY) <= 5) {
+                    
+                    // Move player with platform
+                    const deltaX = platform.currentX - prevX;
+                    player.style.left = `${playerX + deltaX}px`;
+                }
+            }
+        } 
+        else if (platform.movementType === 'vertical') {
+            // Calculate approximate position for vertical movement
+            const time = Date.now() / 1000;
+            const cycle = time % 6; // 6 seconds for a complete cycle (3s each way)
+            const normalizedPosition = cycle < 3 ? cycle / 3 : 2 - (cycle / 3); // 0 to 1 to 0
+            const offset = normalizedPosition * 50; // 0 to 50px
+            
+            // Update platform's y position in our game state
+            platform.currentY = platform.y + offset;
+            
+            // If player is on this platform, move them with it
+            if (isOnPlatform) {
+                const playerX = parseInt(player.style.left);
+                const playerY = parseInt(player.style.bottom);
+                const playerWidth = 50;
+                
+                // Check if player is on this specific platform
+                if (playerX + playerWidth > prevX && 
+                    playerX < prevX + platform.width &&
+                    Math.abs(playerY - prevY) <= 5) {
+                    
+                    // Move player with platform
+                    const deltaY = platform.currentY - prevY;
+                    player.style.bottom = `${playerY + deltaY}px`;
+                }
+            }
+        }
+    });
 }
 
 // Check Platform Collisions
@@ -553,49 +809,103 @@ function checkPlatformCollisions() {
     
     // First check if player is exactly on a platform already (to prevent bouncing)
     for (const platform of platforms) {
-        if (playerX + playerWidth > platform.x && 
-            playerX < platform.x + platform.width &&
-            Math.abs(playerY - platform.y) <= 2) { // Player is already on this platform
-            
+        // For moving platforms, use their current position
+        const platformX = platform.isMoving && platform.movementType === 'horizontal' ? 
+                         platform.currentX : platform.x;
+        const platformY = platform.isMoving && platform.movementType === 'vertical' ? 
+                         platform.currentY : platform.y;
+        
+        // Check horizontal overlap
+        const horizontalOverlap = playerX + playerWidth > platformX && playerX < platformX + platform.width;
+        
+        // Check if player is on top of platform (with a small margin)
+        const onTopOfPlatform = Math.abs(playerY - platformY) <= 2;
+        
+        if (horizontalOverlap && onTopOfPlatform) { 
             // Keep player on platform
-            player.style.bottom = `${platform.y}px`;
+            player.style.bottom = `${platformY}px`;
             playerVelocityY = 0;
             isJumping = false;
             isOnPlatform = true;
+            platform.playerIsOn = true; // Mark this platform as the one player is on
+            
+            // Mark all other platforms as not having the player on them
+            platforms.forEach(p => {
+                if (p !== platform) {
+                    p.playerIsOn = false;
+                }
+            });
             
             if (DEBUG_MODE) {
-                debugLog(`Player maintained on platform at Y=${platform.y}`);
+                debugLog(`Player maintained on platform at Y=${platformY}`);
             }
             
             // Update exposed variable for testing
             window.isOnPlatform = true;
             return; // Exit early, no need to check other platforms
+        } else if (platform.playerIsOn) {
+            // Player was on this platform but is no longer on it
+            platform.playerIsOn = false;
+            
+            // Check if player is still within horizontal bounds but not on top
+            if (horizontalOverlap && playerY > platformY && playerY < platformY + 30) {
+                // Do nothing, normal collision will handle this
+            } else {
+                // Player has moved off the platform horizontally or vertically
+                // Make sure they start falling if not already on another platform
+                if (isOnPlatform && !isJumping) {
+                    isOnPlatform = false;
+                    if (playerVelocityY >= 0) {
+                        playerVelocityY = 0; // Start falling from rest
+                    }
+                    
+                    if (DEBUG_MODE) {
+                        debugLog(`Player moved off platform at X=${platformX}, Y=${platformY}`);
+                    }
+                }
+            }
         }
     }
     
     // If player is not already on a platform, check for new collisions
     platforms.forEach(platform => {
+        // For moving platforms, use their current position
+        const platformX = platform.isMoving && platform.movementType === 'horizontal' ? 
+                         platform.currentX : platform.x;
+        const platformY = platform.isMoving && platform.movementType === 'vertical' ? 
+                         platform.currentY : platform.y;
+        
         // Check if player is within horizontal bounds of the platform
         const horizontalCollision = 
-            playerX + playerWidth > platform.x && 
-            playerX < platform.x + platform.width;
+            playerX + playerWidth > platformX && 
+            playerX < platformX + platform.width;
         
         // Check if player is at the right height to land on the platform
         // Only consider landing if player is above the platform and falling down onto it
         const verticalCollision = 
-            playerY > platform.y - 5 && // Player is slightly above platform
-            playerY < platform.y + 15 && // Not too far above
+            playerY > platformY - 5 && // Player is slightly above platform
+            playerY < platformY + 15 && // Not too far above
             playerVelocityY <= 0; // Player is falling
         
         if (horizontalCollision && verticalCollision) {
             // If this platform is higher than previously found platforms, use this one
-            if (platform.y > highestPlatformY) {
-                highestPlatformY = platform.y;
+            if (platformY > highestPlatformY) {
+                highestPlatformY = platformY;
                 collidingPlatform = platform;
                 onPlatform = true;
                 
+                // Mark this platform as the one player will be on
+                platform.playerIsOn = true;
+                
+                // Mark all other platforms as not having the player on them
+                platforms.forEach(p => {
+                    if (p !== platform) {
+                        p.playerIsOn = false;
+                    }
+                });
+                
                 if (DEBUG_MODE) {
-                    debugLog(`Platform collision detected: Platform at X=${platform.x}, Y=${platform.y}, Width=${platform.width}`);
+                    debugLog(`Platform collision detected: Platform at X=${platformX}, Y=${platformY}, Width=${platform.width}`);
                 }
             }
         }
@@ -603,12 +913,16 @@ function checkPlatformCollisions() {
     
     // If player is on a platform, position them on top of the highest one
     if (onPlatform && collidingPlatform) {
-        player.style.bottom = `${collidingPlatform.y}px`;
+        // For moving platforms, use their current position
+        const platformY = collidingPlatform.isMoving && collidingPlatform.movementType === 'vertical' ? 
+                         collidingPlatform.currentY : collidingPlatform.y;
+        
+        player.style.bottom = `${platformY}px`;
         playerVelocityY = 0;
         isJumping = false;
         
         if (DEBUG_MODE && !isOnPlatform) {
-            debugLog(`Player landed on platform at Y=${collidingPlatform.y}`);
+            debugLog(`Player landed on platform at Y=${platformY}`);
         }
     } else if (isOnPlatform && !onPlatform) {
         // Player just left a platform
@@ -648,13 +962,116 @@ function checkCoinCollisions() {
             coin.element.style.display = 'none';
             
             // Update score
-            score++;
+            score += 2; // Double points in level 2
             scoreDisplay.textContent = score;
             
             // Play coin sound
             playSound('coin');
         }
     });
+}
+
+// Check Obstacle Collisions (new for level 2)
+function checkObstacleCollisions() {
+    const playerX = parseInt(player.style.left);
+    const playerY = parseInt(player.style.bottom);
+    const playerWidth = 50;
+    const playerHeight = 60;
+    
+    obstacles.forEach(obstacle => {
+        // Calculate actual obstacle position (they might be on moving platforms)
+        let obstacleX = obstacle.x;
+        let obstacleY = obstacle.y;
+        
+        // Store if this obstacle was already hit to prevent multiple bounces
+        if (!obstacle.hasOwnProperty('wasHit')) {
+            obstacle.wasHit = false;
+        }
+        
+        // Reset hit status if player is far enough away
+        if (obstacle.wasHit) {
+            const distanceX = Math.abs((playerX + playerWidth/2) - (obstacleX + obstacle.width/2));
+            const distanceY = Math.abs((playerY + playerHeight/2) - (obstacleY + obstacle.height/2));
+            if (distanceX > 100 || distanceY > 100) {
+                obstacle.wasHit = false;
+            }
+        }
+        
+        // Check collision
+        if (!obstacle.wasHit && 
+            playerX + playerWidth > obstacleX &&
+            playerX < obstacleX + obstacle.width &&
+            playerY + playerHeight > obstacleY &&
+            playerY < obstacleY + obstacle.height) {
+            
+            // Mark as hit to prevent multiple bounces
+            obstacle.wasHit = true;
+            
+            // Player hit an obstacle - bounce them back and up a bit, but less aggressively
+            playerVelocityY = Math.max(playerVelocityY, 8); // Gentler bounce up
+            
+            // Bounce left or right depending on which side they hit from, but less aggressively
+            if (playerX + playerWidth/2 < obstacleX + obstacle.width/2) {
+                playerVelocityX = -5; // Gentler bounce left
+            } else {
+                playerVelocityX = 5; // Gentler bounce right
+            }
+            
+            // Add a visual feedback
+            player.style.filter = 'brightness(2) hue-rotate(320deg)';
+            setTimeout(() => {
+                player.style.filter = '';
+            }, 300);
+            
+            // Play hit sound
+            playSound('hit');
+            
+            if (DEBUG_MODE) {
+                debugLog(`Player hit obstacle at X=${obstacleX}, Y=${obstacleY}`);
+            }
+        }
+    });
+}
+
+// Check Power-Up Collisions (new for level 2)
+function checkPowerUpCollisions() {
+    const playerX = parseInt(player.style.left);
+    const playerY = parseInt(player.style.bottom);
+    const playerWidth = 50;
+    const playerHeight = 60;
+    
+    powerUps.forEach(powerUp => {
+        if (!powerUp.collected &&
+            playerX + playerWidth > powerUp.x &&
+            playerX < powerUp.x + powerUp.width &&
+            playerY + playerHeight > powerUp.y &&
+            playerY < powerUp.y + powerUp.height) {
+            
+            // Collect power-up
+            powerUp.collected = true;
+            powerUp.element.style.display = 'none';
+            
+            // Apply super jump power-up
+            hasSuperJump = true;
+            superJumpTimeLeft = 10; // 10 seconds of super jump (doubled duration)
+            
+            // Add visual effect to player
+            player.style.filter = 'drop-shadow(0 0 10px cyan)';
+            
+            // Play power-up sound
+            playSound('powerup');
+            
+            debugLog('Power-up collected: Super Jump activated for 5 seconds');
+        }
+    });
+}
+
+// Update Power-Up Effects (new for level 2)
+function updatePowerUpEffects() {
+    // Nothing to do if no power-ups are active
+    if (!hasSuperJump) return;
+    
+    // Super jump effect - already handled in updatePlayerPosition
 }
 
 // Check Goal Collision
@@ -673,22 +1090,18 @@ function checkGoalCollision() {
         playerY < goalY + 80) {
         
         isLevelComplete = true;
-        messageContent.textContent = 'Level Complete! ';
+        messageContent.textContent = 'Level 2 Complete! ';
         gameMessage.style.display = 'block';
         
-        // Show the level 2 button since player completed the level
-        const level2Button = document.getElementById('level2-button');
-        if (level2Button) {
-            level2Button.style.display = 'block';
-            level2Button.style.marginTop = '20px';
-            level2Button.style.fontSize = '24px';
-            level2Button.style.padding = '15px 30px';
-        }
+        // Show both the restart button and level 1 button
+        const restartButton = document.getElementById('restart-button');
+        if (restartButton) restartButton.style.display = 'inline-block';
+        
+        const level1Button = document.getElementById('level1-button');
+        if (level1Button) level1Button.style.display = 'inline-block';
         
         // Play success sound
         playSound('success');
-        
-        console.log('Level complete! Level 2 button should be visible now.');
     }
 }
 
@@ -730,7 +1143,14 @@ document.addEventListener('keydown', (e) => {
         player.classList.remove('face-left');
         player.classList.add('face-right');
     } else if (e.key === ' ' && isOnPlatform && !isJumping) {
-        playerVelocityY = JUMP_POWER;
+        // Super jump if power-up is active
+        if (hasSuperJump) {
+            playerVelocityY = JUMP_POWER * 1.15; // 15% higher jump boost
+            debugLog('Super jump activated!');
+        } else {
+            playerVelocityY = JUMP_POWER;
+        }
+        
         isJumping = true;
         isOnPlatform = false;
         
@@ -791,83 +1211,10 @@ window.addEventListener('resize', () => {
     updateViewport();
 });
 
-// Function to manually test platform collision
-window.testPlatformCollision = function() {
-    // Create a test platform
-    const testPlatform = {
-        element: document.createElement('div'),
-        x: 100,
-        y: 100,
-        width: 100,
-        height: 20
-    };
-    
-    // Create a test player if it doesn't exist
-    let testPlayer;
-    if (!player) {
-        testPlayer = document.createElement('div');
-        testPlayer.className = 'player';
-        testPlayer.style.left = '150px';
-        testPlayer.style.bottom = '110px';
-        document.body.appendChild(testPlayer);
-        player = testPlayer;
-    }
-    
-    // Save original values
-    const originalPlatforms = platforms ? platforms.slice() : [];
-    const originalPlayerX = player.style.left;
-    const originalPlayerY = player.style.bottom;
-    const originalVelocityY = playerVelocityY;
-    const originalIsOnPlatform = isOnPlatform;
-    
-    try {
-        // Set up test conditions
-        platforms = [testPlatform];
-        player.style.left = '150px';
-        player.style.bottom = '110px';
-        playerVelocityY = -5; // Moving downward
-        isOnPlatform = false;
-        window.isOnPlatform = false;
-        
-        // Run collision detection
-        checkPlatformCollisions();
-        
-        // Get result
-        const result = isOnPlatform;
-        
-        // Restore original values
-        platforms = originalPlatforms;
-        player.style.left = originalPlayerX;
-        player.style.bottom = originalPlayerY;
-        playerVelocityY = originalVelocityY;
-        isOnPlatform = originalIsOnPlatform;
-        window.isOnPlatform = originalIsOnPlatform;
-        
-        // Clean up test player if we created one
-        if (testPlayer) {
-            document.body.removeChild(testPlayer);
-            player = null;
-        }
-        
-        return result;
-    } catch (error) {
-        // Clean up in case of error
-        platforms = originalPlatforms;
-        player.style.left = originalPlayerX;
-        player.style.bottom = originalPlayerY;
-        playerVelocityY = originalVelocityY;
-        isOnPlatform = originalIsOnPlatform;
-        window.isOnPlatform = originalIsOnPlatform;
-        
-        if (testPlayer) {
-            document.body.removeChild(testPlayer);
-            player = null;
-        }
-        
-        console.error("Test platform collision error:", error);
-        return false;
-    }
-};
+// Add event listener for the restart button
+document.getElementById('restart-button').addEventListener('click', () => {
+    initGame();
+});
 
 // Function to manually test platform collision
 window.testPlatformCollision = function() {
@@ -953,14 +1300,10 @@ window.checkGameOver = function() {
     const playerY = parseInt(player.style.bottom);
     
     // Check if player is below the screen
-    if (playerY <= -100 && !isGameOver) {
+    if (playerY <= -200 && !isGameOver) {
         isGameOver = true;
-        messageContent.textContent = 'Game Over! Try Again ';
+        messageContent.textContent = 'Game Over! Try Again';
         gameMessage.style.display = 'block';
-        
-        // Hide the level 2 button since player didn't complete the level
-        const level2Button = document.getElementById('level2-button');
-        if (level2Button) level2Button.style.display = 'none';
         
         return true;
     }
@@ -972,23 +1315,18 @@ window.initGame = initGame;
 window.checkCoinCollisions = checkCoinCollisions;
 window.checkPlatformCollisions = checkPlatformCollisions;
 window.checkGoalCollision = checkGoalCollision;
+window.checkObstacleCollisions = checkObstacleCollisions;
+window.checkPowerUpCollisions = checkPowerUpCollisions;
 window.player = player;
 window.platforms = platforms;
 window.isOnPlatform = isOnPlatform;
 window.playerVelocityY = playerVelocityY;
 window.isGameOver = isGameOver;
 window.isLevelComplete = isLevelComplete;
+window.goal = goal;
+
+// Add a safety delay to ensure player doesn't fall through platform at start
+let safetyStartTimer = 0;
 
 // Initialize the game
 initGame();
-
-// Add event listener to restart game on page refresh
-window.addEventListener('beforeunload', () => {
-    // This doesn't actually do anything functional,
-    // but it's here to indicate that the game will restart on refresh
-});
-
-// Add event listener for the restart button
-document.getElementById('restart-button').addEventListener('click', () => {
-    initGame();
-});
